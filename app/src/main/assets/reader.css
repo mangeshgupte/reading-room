@@ -1,0 +1,109 @@
+/* Reader theme: Playfair Display headings (400, never bold) over Work Sans, terracotta accent.
+   The app sets every variable inline (palette + type scale); these are the light / standard
+   values. The accent is a stroke, an underline or a small figure, never a fill. */
+:root {
+  --fs: 17px; --title: 32px; --section: 22px; --tlh: 1.12; --lh: 1.62; --gap: 14px; --pad: 24px;
+  --bg: #f4f1ea; --surface: #faf8f3; --fg: #23201c; --fg2: #4d4944; --muted: #74706a; --rule: #d8d2c6;
+  --accent: #c2603c; --code: #ebe7de; --hl: rgba(194,96,60,.16); --press: rgba(194,96,60,.08);
+  --serif: "Playfair Display", Georgia, serif; --sans: "Work Sans", Roboto, "Helvetica Neue", sans-serif;
+}
+html { background: var(--bg); }
+body.loading { visibility: hidden; }
+body {
+  margin: 0; padding: var(--top, 14px) var(--pad) var(--bottom, 48px); background: var(--bg); color: var(--fg);
+  font-family: var(--sans); font-weight: 400; font-size: var(--fs); line-height: var(--lh);
+  -webkit-text-size-adjust: 100%; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto;
+  -webkit-tap-highlight-color: var(--press);
+}
+::selection { background: var(--hl); }
+strong, b, th { font-weight: 600; }
+
+/* header: title, meta label, source, the queue note */
+.detail > h2 { font-family: var(--serif); font-weight: 400; font-size: var(--title); line-height: var(--tlh); margin: 0 0 var(--gap); hyphens: manual; -webkit-hyphens: manual; }
+.readmeta, .endnote, .nextrow .meta, .mcomment .mtag {
+  font-size: 12px; line-height: 1.5; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.readmeta { margin: 0 0 var(--gap); hyphens: manual; -webkit-hyphens: manual; }
+.source { font-size: 12px; line-height: 1.5; margin: 0 0 var(--gap); }
+.source a { color: var(--muted); word-break: break-all; }
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.callout { border-left: 1px solid var(--accent); padding: 0 0 0 14px; margin: 0 0 var(--gap); color: var(--fg2); font-style: italic; font-size: .94em; }
+
+/* body */
+.report { margin-top: calc(var(--gap) + 8px); }
+.report > :first-child { margin-top: 0; }
+.report h2, .report h3, .report h4, .report h5, .report h6 { font-family: var(--serif); font-weight: 400; line-height: 1.25; hyphens: manual; -webkit-hyphens: manual; }
+/* section heading: a 1px accent rule above. The Mac demotes headings by one (the title is the h2 above),
+   so a document's "##" sections arrive as h3; a stray "#" in the body is an h2 and reads a step larger. */
+.report h2, .report h3 { font-size: var(--section); margin: calc(var(--gap) + 10px) 0 var(--gap); padding-top: 12px; border-top: 1px solid var(--accent); }
+.report h2 { font-size: calc(var(--section) * 1.14); }
+.report h4 { font-size: calc(var(--section) * .86); margin: calc(var(--gap) + 8px) 0 var(--gap); }
+.report h5, .report h6 { font-size: 1.06em; font-style: italic; margin: calc(var(--gap) + 4px) 0 var(--gap); }
+.report p { margin: 0 0 var(--gap); }
+body.justify .report p, body.justify .report li, body.justify .report blockquote { text-align: justify; text-align-last: left; }
+.report ul, .report ol { padding-left: 1.4em; margin: 0 0 var(--gap); } .report li { margin: 0.25em 0; }
+.report li::marker { color: var(--muted); font-variant-numeric: tabular-nums; }
+.report blockquote { margin: 0 0 var(--gap); padding: 0 0 0 16px; border-left: 1px solid var(--rule); color: var(--fg2); }
+.report blockquote > :last-child { margin-bottom: 0; }
+.report hr { border: 0; border-top: 1px solid var(--rule); margin: calc(var(--gap) * 2) 0; }
+/* a "---" written just before a section would double the heading's own rule */
+.report hr:has(+ h2), .report hr:has(+ h3) { display: none; }
+.report mark { background: var(--hl); box-shadow: inset 0 -2px var(--accent); color: inherit; }
+.report code { font-family: ui-monospace, Menlo, monospace; font-size: 0.86em; background: var(--code); padding: 0.1em 0.3em; border-radius: 3px; hyphens: none; -webkit-hyphens: none; }
+/* TeX, typeset by KaTeX. Its own size is tuned for a serif body; beside Work Sans' tall x-height it reads large. */
+.katex { font-size: 1.08em; }
+.tex.display { display: block; margin: 0 0 var(--gap); overflow-x: auto; overflow-y: hidden; padding: 2px 0; -webkit-overflow-scrolling: touch; }
+.tex.display > .katex-display { margin: 0; }
+.tex:not(:has(.katex)) { font-family: ui-monospace, Menlo, monospace; font-size: 0.86em; }   /* untypeset: it is source */
+/* scripts in math written as code: no extra leading, and a script of a script stays legible */
+.report sub, .report sup { font-size: 0.74em; line-height: 0; }
+.report sub sub, .report sub sup, .report sup sub, .report sup sup { font-size: 0.86em; }
+.report pre { background: var(--code); padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-size: 0.8em; line-height: 1.45; margin: 0 0 var(--gap); }
+.report pre code { background: none; padding: 0; }
+.diagram { overflow-x: auto; margin: 0 calc(-1 * var(--pad)) var(--gap); padding: 0 var(--pad); -webkit-overflow-scrolling: touch; }
+.diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+pre.mermaid-failed { border-left: 1px solid var(--accent); }
+.tablewrap { overflow-x: auto; margin: 0 calc(-1 * var(--pad)) var(--gap); padding: 0 var(--pad); -webkit-overflow-scrolling: touch; }
+.report table { border-collapse: collapse; font-size: 0.82em; line-height: 1.4; min-width: 100%; font-variant-numeric: tabular-nums; }
+.report th, .report td { border-bottom: 1px solid var(--rule); padding: 0.5em 0.6em; text-align: left; vertical-align: top; white-space: nowrap; }
+.report th:first-child, .report td:first-child { padding-left: 0; }
+figure { margin: var(--gap) calc(-1 * var(--pad)); }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { padding: 8px var(--pad) 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+img { max-width: 100%; height: auto; }
+
+/* marginalia: M's notes carry the highlight; prism's replies are a quiet hairline aside */
+.mcomment { margin: 0 0 var(--gap); padding: 10px 14px; border-left: 2px solid var(--accent); background: var(--hl); color: var(--fg); font-size: 0.88em; line-height: 1.5; }
+.mcomment.prism { border-left: 1px solid var(--rule); background: none; color: var(--fg2); }
+.mcomment .mtag { display: inline-block; margin-right: 0.8em; }
+.mcomment.pending { border-left-style: dashed; opacity: 0.85; }
+.mcomment.pending::after { content: " · pending sync"; font-size: 0.85em; color: var(--muted); }
+.mcomment.failed { border-left-style: dashed; background: none; }
+.mcomment.failed .why { display: block; font-size: 0.85em; margin-top: 0.3em; color: var(--muted); }
+.mcomment.failed::after { content: " · tap to re-place"; font-size: 0.85em; color: var(--accent); }
+/* the passage being commented on: accent tint with a 2px accent underline */
+[data-line].hl { background: var(--hl); box-shadow: inset 0 -2px var(--accent); }
+
+/* end of report: outlined actions, the primary one stroked in the accent */
+.endrow { display: flex; gap: 12px; margin: calc(var(--gap) * 3) 0 var(--gap); padding-top: 24px; border-top: 1px solid var(--rule); }
+.endrow button { flex: 1; font: inherit; font-size: 14px; line-height: 1.4; padding: 12px 0; border-radius: 6px; border: 1px solid var(--rule); background: transparent; color: var(--fg); outline: none; }
+.endrow button.primary { border-color: var(--accent); color: var(--accent); }
+.endrow button:active { background: var(--press); }
+.nextrow { padding: 14px 0; border-top: 1px solid var(--rule); }
+.nextrow:active { background: var(--press); }
+.nextrow .title { font-family: var(--serif); font-size: 19px; line-height: 1.2; margin-top: 6px; hyphens: manual; -webkit-hyphens: manual; }
+.endnote { margin-top: calc(var(--gap) * 3); padding-top: 16px; border-top: 1px solid var(--rule); }
+
+/* paged mode: viewport-wide columns, one column per page, vertical swipes turn pages */
+body.paged { overflow: hidden; height: 100vh; padding: 0; margin: 0; position: relative; perspective: 1400px; perspective-origin: 50% 50%; }
+body.paged .vp { position: absolute; left: 0; right: 0; top: var(--ptop, 20px); height: var(--pageH, 80vh); overflow: hidden; background: var(--bg); }
+body.paged .vp.layer { pointer-events: none; will-change: transform; backface-visibility: visible; }
+body.paged .vp.layer .shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: #000; opacity: 0; pointer-events: none; }
+body.paged .cols { margin-left: var(--pad); width: calc(var(--pageW, 100vw) - 2 * var(--pad)); height: var(--pageH, 80vh); column-width: calc(var(--pageW, 100vw) - 2 * var(--pad)); column-gap: calc(2 * var(--pad)); column-fill: auto; will-change: transform; }
+body.paged .detail > h2 { margin-top: 0; }
+body.paged figure, body.paged .diagram, body.paged .tablewrap { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; break-inside: avoid; }
+body.paged figure img { max-height: calc(var(--pageH, 80vh) * 0.55); width: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
+body.paged figcaption { padding-left: 0; padding-right: 0; }
+body.paged .tablewrap, body.paged .diagram, body.paged .report pre { max-height: calc(var(--pageH, 80vh) - 1em); overflow: auto; }
+body.paged .tex.display, body.paged .mcomment, body.paged .endrow, body.paged .nextrow, body.paged .callout { break-inside: avoid; }
+body.paged .report h2, body.paged .report h3, body.paged .report h4, body.paged .report h5 { break-after: avoid; }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- open book: two pages meeting at the spine -->
+    <path
+        android:pathData="M30,34 Q42,30 54,38 L54,76 Q42,68 30,72 Z"
+        android:strokeColor="#F3E9D2"
+        android:strokeWidth="3.5"
+        android:fillColor="#00000000"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M78,34 Q66,30 54,38 L54,76 Q66,68 78,72 Z"
+        android:strokeColor="#F3E9D2"
+        android:strokeWidth="3.5"
+        android:fillColor="#00000000"
+        android:strokeLineJoin="round" />
+    <!-- text lines -->
+    <path android:pathData="M36,46 L48,44 M36,53 L48,51 M36,60 L48,58 M60,44 L72,46 M60,51 L72,53 M60,58 L72,60"
+        android:strokeColor="#F3E9D2" android:strokeWidth="2.5" android:strokeLineCap="round" />
+</vector>
