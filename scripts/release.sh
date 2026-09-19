@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Build a release: bump versionCode, assemble signed APK, stage it in dist/ for
-# the shared server's reader module (/reader/version.json), and push over adb
-# if a phone is attached.
+# the shared server's reader module (/reader/version.json), commit and tag the
+# bump, and push over adb if a phone is attached.
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -27,6 +27,19 @@ cat > dist/version.json <<JSON
 {"versionCode": $new_code, "versionName": "$name", "apk": "$apk_name"}
 JSON
 echo "Staged dist/$apk_name"
+
+# Record the release in git: the bump is its own commit, tagged build-N. A build
+# made over uncommitted work gets no tag, so a tag always names an APK's exact source.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    dirty=$(git status --porcelain -- . ':!version.properties')
+    git commit --quiet -m "Release build $new_code" -- version.properties
+    if [[ -z "$dirty" ]]; then
+        git tag -a "build-$new_code" -m "Build $new_code"
+        echo "Committed and tagged build-$new_code"
+    else
+        echo "Committed the bump, no tag: this build includes uncommitted changes."
+    fi
+fi
 
 ADB="$ANDROID_HOME/platform-tools/adb"
 if "$ADB" get-state >/dev/null 2>&1; then
