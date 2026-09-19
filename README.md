@@ -74,8 +74,9 @@ only installs updates signed with the same key. Back it up.
 
 ## Working in git
 
-The repo is local, no remote. `main` is what the phone runs or is about to run: it builds,
-and `./gradlew test` passes on it.
+The repo is `github.com/mangeshgupte/reading-room`, and it is **public**: no token, keystore
+or password goes into a commit. `main` tracks `origin/main` and is what the phone runs or is
+about to run: it builds, and `./gradlew test` passes on it.
 
 - **A feature is a branch.** `git switch -c feature/<slug>` off `main`, committed in small
   steps whose messages say what changed and why. A one-line fix can go straight on `main`.
@@ -84,7 +85,8 @@ and `./gradlew test` passes on it.
   A build made over uncommitted work gets the commit but no tag, so a tag always names an
   APK's exact source: `git checkout build-N` is the code behind that APK.
 - **Done** means tests green and, where it shows, seen on the phone. Then
-  `git switch main && git merge --no-ff feature/<slug>` and delete the branch, so
+  `git switch main && git merge --no-ff feature/<slug>`, delete the branch, and
+  `git push --follow-tags` (the `build-N` tags go with it), so
   `git log --first-parent main` reads one line per feature.
 - **Not in the repo:** `keys/` (git is no backup for the keystore), `local.properties`,
   `dist/`, build output.
