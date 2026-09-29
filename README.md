@@ -1,7 +1,7 @@
 # Reading Room — Android app for the reading list
 
 Native Kotlin/Compose app that syncs the cross-project reading queue
-(`~/vibes/projects/bin/reading-list`) to the phone, renders each report and web
+(`~/vibes/reading-room/bin/reading-list`) to the phone, renders each report and web
 clip for reading offline, and sends done / drop / comment back through the CLI.
 Design: `../../docs/plans/2026-09-17-reader-app-design.md`.
 
