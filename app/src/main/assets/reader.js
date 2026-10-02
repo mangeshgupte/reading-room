@@ -70,6 +70,15 @@
   function computePages() {
     pages = Math.max(1, Math.ceil((cols.scrollWidth - 1) / W));
   }
+  // a wide formula, table, diagram or code block scrolls inside its box; one that fits is a plain box.
+  // Only the scrolling ones cost the fold anything (see .scrolls in reader.css), so mark them, not all.
+  function markScrollers() {
+    content.querySelectorAll('.tex.display, .tablewrap, .diagram, pre').forEach(function (el) {
+      var wide = el.scrollWidth > el.clientWidth + 1;
+      var tall = el.scrollHeight > el.clientHeight + 1 && !el.classList.contains('tex');   // a formula's overhang is clipped, never scrolled
+      el.classList.toggle('scrolls', wide || tall);
+    });
+  }
   function flowX(el) {  // x of an element's first fragment in the untransformed column flow
     var r = el.getClientRects()[0];
     if (!r) return null;
@@ -103,6 +112,7 @@
     if (fold) { pendingRelayout = true; return; }
     var anchor = anchorBlock();
     measure();
+    markScrollers();
     computePages();
     if (anchor) { page = pageOf(anchor); }
     goTo(page);
@@ -115,7 +125,10 @@
     relayoutTimer = setTimeout(relayout, 60);
   }
 
-  // --- the fold: two hidden copies of the current page, prepared in idle time ---
+  // --- the fold: two hidden copies of the article, made in idle time and kept across page turns ---
+  // A copy is the whole article laid out again; making one costs a full layout, so the pair is reused
+  // (a fold slides them to the page it starts from) and remade only when the article or its look changes.
+  var spareGen = 0;   // bumped by invalidateSpares(): a copy from an older generation is stale
   function makeClone() {
     var c = viewport.cloneNode(true);
     c.removeAttribute('id');
@@ -125,17 +138,28 @@
     cc.style.transition = '';
     cc.style.transform = 'translateX(' + tx + 'px)';
     c.style.visibility = 'hidden';
+    c.gen = spareGen;
     body.appendChild(c);
     return c;
   }
   function invalidateSpares() {
+    spareGen++;
     spares.forEach(function (c) { if (c.parentNode) c.parentNode.removeChild(c); });
     spares = [];
   }
-  function prepareSpares() { invalidateSpares(); spares = [makeClone(), makeClone()]; }
+  function prepareSpares() { while (spares.length < 2) spares.push(makeClone()); }
   function schedulePrepare() {
     var cb = function () { if (!fold) prepareSpares(); };
     if (window.requestIdleCallback) requestIdleCallback(cb, { timeout: 400 }); else setTimeout(cb, 40);
+  }
+  function releaseLayer(c) {   // a fold is over: hide the copy and put it back, unless it went stale meanwhile
+    var shade = c.querySelector('.shade');
+    if (shade) shade.remove();
+    if (c.gen !== spareGen) { if (c.parentNode) c.parentNode.removeChild(c); return; }
+    c.style.visibility = 'hidden';
+    c.style.clipPath = ''; c.style.zIndex = ''; c.style.transform = ''; c.style.transformOrigin = '';
+    c.firstElementChild.style.transform = 'translateX(' + tx + 'px)';
+    spares.push(c);
   }
 
   function beginFold(dir) {
@@ -145,6 +169,7 @@
     var stat = spares[0], panel = spares[1];
     spares = [];
     var from = page;
+    stat.firstElementChild.style.transform = 'translateX(' + (-from * W) + 'px)';
     stat.style.clipPath = dir > 0 ? 'inset(0 0 50% 0)' : 'inset(50% 0 0 0)';   // the half that waits
     stat.style.zIndex = '2';
     panel.style.clipPath = dir > 0 ? 'inset(50% 0 0 0)' : 'inset(0 0 50% 0)';  // the half that folds
@@ -152,6 +177,7 @@
     panel.style.transformOrigin = '50% 50%';
     var inner = panel.firstElementChild;
     inner.style.transformOrigin = '50% 50%';
+    inner.style.transform = 'translateX(' + (-from * W) + 'px)';
     var shade = document.createElement('div');
     shade.className = 'shade';
     panel.appendChild(shade);
@@ -191,8 +217,8 @@
     if (!f) return;
     animateTheta(complete ? 180 : 0, complete ? 240 : 180, function () {
       if (!complete) goTo(f.from, false, true);
-      if (f.stat.parentNode) f.stat.parentNode.removeChild(f.stat);
-      if (f.panel.parentNode) f.panel.parentNode.removeChild(f.panel);
+      releaseLayer(f.stat);
+      releaseLayer(f.panel);
       fold = null;
       if (complete) report(byUser !== false);
       if (pendingRelayout) { pendingRelayout = false; relayout(); } else schedulePrepare();
@@ -204,45 +230,56 @@
 
   if (paged) {
     measure();
-    var drag = null;
+    var drag = null, swipeParams = Swipe.config();
+    window.configureSwipe = function (params) { swipeParams = Swipe.config(params); };
+    function endDrag(e) {
+      if (!drag) return;
+      var d = drag; drag = null;
+      var t = e.changedTouches && e.changedTouches[0];
+      if (t) Swipe.move(d.gesture, t.clientX, t.clientY, performance.now());
+      var r = Swipe.result(d.gesture, H, e.type !== 'touchend');
+      if (r.complete && !d.moved && !d.native) {
+        d.moved = true;
+        d.dead = !beginFold(r.direction);
+      }
+      r.page = d.page; r.pages = pages; r.width = W;
+      r.timestamp = new Date().toISOString();
+      r.outcome = r.complete && d.moved && !d.dead && !d.native ? (r.direction > 0 ? 'next' : 'previous') : 'none';
+      if (d.native) r.reason = 'native scroller';
+      else if (d.dead) r.reason = 'page boundary';
+      if (d.moved || d.gesture.rejected || e.type !== 'touchend') suppressClickUntil = Date.now() + 400;
+      if (d.moved && !d.dead && fold) finishFold(r.outcome !== 'none');
+      if (window.swipePlayground && A && A.onGesture) A.onGesture(JSON.stringify(r));
+    }
     viewport.addEventListener('touchstart', function (e) {
-      if (e.touches.length !== 1 || fold) { drag = null; return; }
+      if (e.touches.length !== 1) { endDrag({ type: 'touchcancel' }); return; }
+      if (fold) return;
       var t = e.touches[0];
-      var inScroller = e.target.closest && e.target.closest('.tablewrap, .diagram, pre');
-      drag = { y: t.clientY, x: t.clientX, t: Date.now(), moved: false, dead: false, native: !!inScroller, ly: t.clientY, lt: Date.now(), vy: 0 };
+      var inScroller = e.target.closest && e.target.closest('.tablewrap, .diagram, pre, a, button');
+      drag = { gesture: Swipe.start(t.clientX, t.clientY, performance.now(), swipeParams),
+        page: page, moved: false, dead: false, native: !!inScroller };
     }, { passive: true });
     viewport.addEventListener('touchmove', function (e) {
-      if (!drag || e.touches.length !== 1 || drag.native) return;
-      var t = e.touches[0], dy = t.clientY - drag.y, dx = t.clientX - drag.x, now = Date.now();
+      if (!drag) return;
+      if (e.touches.length !== 1) { endDrag({ type: 'touchcancel' }); return; }
+      var t = e.touches[0], g = drag.gesture;
+      Swipe.move(g, t.clientX, t.clientY, performance.now());
+      if (drag.native || !g.dir) return;
       if (!drag.moved) {
-        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-        if (Math.abs(dx) > Math.abs(dy)) { drag = null; return; }
         drag.moved = true;
-        drag.dir = dy < 0 ? 1 : -1;
-        if (!beginFold(drag.dir)) drag.dead = true;
+        if (!beginFold(g.dir)) drag.dead = true;
       }
       e.preventDefault();
       if (drag.dead) return;
-      drag.vy = (t.clientY - drag.ly) / Math.max(1, now - drag.lt);
-      drag.ly = t.clientY; drag.lt = now;
-      var progress = (drag.dir > 0 ? -dy : dy) / (H * 0.55);
-      setTheta(Math.max(0, Math.min(180, progress * 180)));
+      var dy = g.points[0][1] - t.clientY;
+      setTheta(Math.max(0, Math.min(180, dy * g.dir / (H * 0.55) * 180)));
     }, { passive: false });
-    function endDrag() {
-      if (!drag) return;
-      var d = drag; drag = null;
-      if (!d.moved) return;
-      suppressClickUntil = Date.now() + 400;
-      if (d.dead || !fold) return;
-      var fast = (d.dir > 0 ? -d.vy : d.vy) > 0.4;
-      finishFold(fold.theta > 70 || fast);
-    }
     viewport.addEventListener('touchend', endDrag, { passive: true });
     viewport.addEventListener('touchcancel', endDrag, { passive: true });
 
     // taps: lower part next, upper part previous, middle toggles the chrome
     viewport.addEventListener('click', function (e) {
-      if (Date.now() < suppressClickUntil) return;
+      if (window.swipePlayground || Date.now() < suppressClickUntil) return;
       if (e.target.closest && e.target.closest('a, button, .mcomment, .endrow, .nextrow, .hl')) return;
       var r = viewport.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
       if (y > 0.62) flip(1);
@@ -290,6 +327,7 @@
     if (!revealed) return;   // still loading: setScroll() and reveal() place the page
     if (paged) {
       measure();
+      markScrollers();
       computePages();
       goTo(anchor ? pageOf(anchor) : page);
       invalidateSpares();
@@ -336,8 +374,8 @@
     if (!fold) return;
     var f = fold;
     fold = null;   // animateTheta() stops when the fold is no longer the current one
-    if (f.stat.parentNode) f.stat.parentNode.removeChild(f.stat);
-    if (f.panel.parentNode) f.panel.parentNode.removeChild(f.panel);
+    releaseLayer(f.stat);
+    releaseLayer(f.panel);
   }
   window.scrubStart = function () {
     if (!paged) return;
@@ -364,7 +402,6 @@
     }
     var target = page, from = scrubFrom;
     scrubFrom = -1;
-    invalidateSpares();   // they are copies of the page the scrub started on
     if (from >= 0 && target !== from) {
       var dir = target > from ? 1 : -1;
       goTo(target - dir, false, true);

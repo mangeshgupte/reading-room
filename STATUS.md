@@ -28,3 +28,22 @@ blocker:
 
 ## 2026-09-19
 - Upstream set: `origin` = `git@github.com:mangeshgupte/reading-room.git` (public, MIT). GitHub's initial commit held only `LICENSE`, so the local history was replayed on top of it rather than force-pushed; `build-18` moved to the replayed import commit. Tracked files scanned for credentials before the first push: none (the token is typed in at runtime, signing passwords come from the ignored `keys/`).
+
+## 2026-10-02
+- Added Settings → Playground: sample reader, five tunable swipe parameters,
+  per-gesture intent labels and notes, local retention of 300 traces, and JSON export.
+  The reader and playground share swipe.js. Cancelled touches now roll back; flick
+  speed uses a recent window including release, preventing stale velocity after a pause.
+- Added dependency-free trace replay/ranking script and ten passing detector and reader touch-handler tests.
+  Changed Kotlin screens compile directly against cached dependencies.
+  Android Gradle verification blocked by sandbox socket restrictions; escalation
+  disabled. Not released or checked on a phone; feature remains on its branch.
+- Page turns on the Schmidhuber paper (#88, 81 pages) were sluggish: a Perfetto trace of build 18 on the Pixel 9 Pro XL shows the WebView's renderer main thread busy for ~2.1 s after each tap. Reproduced in headless Chrome at phone size (a *fresh* profile is needed; a reused one composites differently and hides it): a tap flip cost 1.3 s of main thread, a finger drag 740 ms per touchmove, nearly all of it Chrome's layer assignment (`Layerize`), not layout. Cause: every scroll container inside the column flow (`.tex.display`, `pre`, `.tablewrap`, `.diagram`) is composited, and a composited box inside the flow gets a layer as wide as the whole 33,000 px flow — nine of them, times three copies of the article. Fix on `feature/fold-perf`: in paged mode a box is a scroll container only when its content overflows (`.scrolls`, marked after each layout) with `contain: paint`, the fold's copies never scroll, and the two copies are kept across turns instead of rebuilt (two full relayouts) after each. Measured: tap flip 1,320 → 210 ms, worst frame 734 → 34 ms; drag 12.1 s → 0.4 s, no frame over 34 ms; #28 (8 tables) and #84 (tables, a code block) improve too. Pagination identical, pages pixel-identical, wide boxes still scroll, 38 JVM tests green. **Not yet on the phone**: the release was not cut; the 2.1 s number is the one to re-measure after install (`scratchpad/perfetto_flip.cfg` + `q2.py` from this session, or any Perfetto trace with `sched_switch`).
+- Merged `feature/fold-perf` into `feature/swipe-playground` for the combined release.
+  Rechecked the ten gesture tests; Gradle and ADB both cannot start their local
+  sockets in this session, so no new APK was built or installed and build 18 remains current.
+
+- Swipe study now opens in an immersive full-screen window. Tune and Feedback
+  overlay the sample reader instead of reserving screen space; app tabs are hidden.
+  Changed Kotlin screens compile against cached dependencies. Not yet released
+  or visually verified on the phone.

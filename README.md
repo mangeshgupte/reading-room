@@ -43,8 +43,11 @@ The app never writes the log; the module shells out to `reading-list`.
 - **Pages.** Paged mode (default) lays the article out as viewport-wide CSS columns, one per
   page, so lines are never cut. A vertical drag folds the near half over the midline,
   Flipboard-style, and completes past the edge; taps low/high turn pages, a middle tap
-  toggles the bars. The fold uses two hidden clones of the current page prepared in idle
-  time. Scroll mode is a toggle in Settings and the reader menu.
+  toggles the bars. The fold uses two hidden copies of the article, made in idle time and
+  kept across turns. A wide formula, table, diagram or code block scrolls inside its box;
+  one that fits is a plain box, and the copies never scroll — a scroll container inside the
+  column flow is what the WebView composites, and each one taxes every page turn (see the
+  note in `reader.css`). Scroll mode is a toggle in Settings and the reader menu.
 - **Quick scroll.** The footer's progress line is the page edge you thumb. Drag along it to riffle:
   pages swap at once with no fold, a tick marks where each section starts and the drag snaps softly
   to it, and a label over the finger names the section and the page ("Scorecard · 17 / 22"). Letting
@@ -104,3 +107,30 @@ about to run: it builds, and `./gradlew test` passes on it.
    Bonjour (`_vibes._tcp`, advertised by the server), so neither the phone's `.local`
    resolution nor the Mac's DHCP address matters. Typing an IP instead skips discovery.
 4. Updates: Settings → Check for updates (pull), or `scripts/release.sh` over adb (push).
+
+## Swipe playground
+
+Settings → Playground → Open swipe playground opens a disposable sample article
+using the same detector and page folds as the reader. The study opens full screen,
+with app tabs and system bars hidden. A small bottom bar provides Back, Tune, and
+Feedback; the panels overlay the page so its gesture viewport stays the same size.
+Tap **Tune** to adjust start
+distance, vertical dominance, completion distance, flick speed, and speed sampling
+window. Changes persist for the playground only; **Reset defaults** restores the
+reader's settings. The sample accepts swipes only (tap-to-turn is disabled).
+
+After a gesture, open **Feedback** and select **Next**, **Previous**, or **No turn** to label your intent,
+and optionally describe what felt wrong. Earlier / Later lets you revisit trials.
+The latest 300 trials persist locally, including unlabelled attempts, raw CSS-pixel
+coordinates and monotonic timestamps, viewport dimensions, parameter snapshots,
+outcomes, and cancellation / boundary reasons. **Export** saves a JSON file through
+Android's document picker, with app and device versions. Send that file in the chat
+for analysis; it is not automatically uploaded or included in queue sync. Export
+before exceeding 300 trials if you want to keep a whole session.
+
+Try both successful and failed swipes, plus movements that should do nothing.
+Replay labelled exports with `node scripts/analyze-swipes.cjs feedback.json` (multiple
+files accepted). This ranks candidate settings, weighting accidental turns twice
+as heavily as misses. Validate a candidate on new gestures before promoting it to
+reader defaults; replay cannot predict how changed fold timing will feel.
+Detector regressions: `node --test tests/swipe.test.cjs`.
