@@ -39,8 +39,8 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
     /** The article the Reading tab shows: the last one opened. */
     var currentId by mutableStateOf<Int?>(null)
         private set
-    /** Reader chrome (top bar, tabs): hidden while reading, revealed by scrolling up. */
-    var chromeVisible by mutableStateOf(true)
+    /** Reader chrome (top bar, tabs): an article opens without it; a middle tap, or scrolling up, brings it back. */
+    var chromeVisible by mutableStateOf(false)
     /** Full-screen reading: the Reading tab with an article open. */
     val readingMode: Boolean get() = tab == Tab.Reading && currentId != null
     var syncing by mutableStateOf(false)
@@ -76,7 +76,7 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
         flushProgress()
         store.markOpened(id)
         currentId = id
-        chromeVisible = true
+        chromeVisible = false   // straight into the page, full screen
         tab = Tab.Reading
     }
 
@@ -93,7 +93,7 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
         flushProgress()
         if (t == Tab.Reading) {
             if (currentId == null) currentId = SyncLogic.continueCandidate(store.state.value.visible)?.id
-            chromeVisible = true
+            chromeVisible = false
         }
         tab = t
     }
