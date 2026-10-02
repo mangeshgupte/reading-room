@@ -9,7 +9,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -17,6 +25,27 @@ import com.mangesh.reader.BuildConfig
 import com.mangesh.reader.data.Entry
 import org.json.JSONArray
 import org.json.JSONObject
+
+/** Own window keeps the study independent of the app tabs and restores normal chrome on exit. */
+@Composable
+fun PlaygroundDialog(vm: QueueViewModel, onBack: () -> Unit) {
+    Dialog(onDismissRequest = onBack, properties = DialogProperties(
+        usePlatformDefaultWidth = false, decorFitsSystemWindows = false,
+        dismissOnBackPress = false, dismissOnClickOutside = false,
+    )) {
+        val view = LocalView.current
+        DisposableEffect(view) {
+            val window = (view.parent as DialogWindowProvider).window
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
+        }
+        Surface(Modifier.fillMaxSize(), color = LocalPalette.current.bgColor) {
+            PlaygroundScreen(vm, onBack)
+        }
+    }
+}
 
 /** Uses the real reader without changing any report's progress. */
 @Composable
@@ -30,6 +59,7 @@ fun PlaygroundScreen(vm: QueueViewModel, onBack: () -> Unit) {
     var selected by remember { mutableIntStateOf(trials.length() - 1) }
     var revision by remember { mutableIntStateOf(0) }
     var panel by remember { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf(false) }
     var pageLabel by remember { mutableStateOf("Loading sample…") }
     var status by remember { mutableStateOf("") }
     fun persist() { prefs.edit().putString("trials", trials.toString()).apply(); revision++ }
@@ -72,17 +102,29 @@ fun PlaygroundScreen(vm: QueueViewModel, onBack: () -> Unit) {
             override fun onSections(json: String) {}
         }
     }
-    BackHandler { if (panel) panel = false else onBack() }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextAction("Back", onBack)
-            Text("Playground", style = Type.rowTitle, color = palette.fgColor)
-            TextAction("Tune", { panel = true })
+    BackHandler {
+        when {
+            panel -> panel = false
+            feedback -> feedback = false
+            else -> onBack()
         }
-        Text("$pageLabel · Swipe on the article", Modifier.padding(horizontal = 16.dp), style = Type.figure)
-        AndroidView(factory = { web.view }, modifier = Modifier.weight(1f).fillMaxWidth())
-        Hairline()
-        Column(Modifier.fillMaxWidth().height(220.dp).verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    }
+    Box(Modifier.fillMaxSize()) {
+        // Controls overlay the page: opening feedback never changes the gesture viewport.
+        AndroidView(factory = { web.view }, modifier = Modifier.fillMaxSize())
+        Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().safeDrawingPadding(), color = palette.bgColor) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                TextAction("Back", onBack)
+                TextAction("Tune", { panel = true })
+                TextAction("Feedback · $count", { feedback = true })
+            }
+        }
+    }
+    if (feedback) AlertDialog(onDismissRequest = { feedback = false },
+        title = { Text("Swipe feedback · $pageLabel") },
+        text = {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val trial = remember(selected, revision) { if (selected >= 0) trials.getJSONObject(selected) else null }
             if (trial == null) Text("Try a swipe above, then label what should have happened.", style = Type.figure)
             else {
@@ -102,7 +144,7 @@ fun PlaygroundScreen(vm: QueueViewModel, onBack: () -> Unit) {
             }
             if (status.isNotEmpty()) Text(status, style = Type.figure)
         }
-    }
+    }, confirmButton = { TextButton(onClick = { feedback = false }) { Text("Keep swiping") } })
     if (panel) AlertDialog(onDismissRequest = { panel = false }, title = { Text("Tune swipes") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Changes apply to this playground only. The latest 300 trials stay on this device until exported.")

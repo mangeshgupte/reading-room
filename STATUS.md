@@ -42,3 +42,8 @@ blocker:
 - Merged `feature/fold-perf` into `feature/swipe-playground` for the combined release.
   Rechecked the ten gesture tests; Gradle and ADB both cannot start their local
   sockets in this session, so no new APK was built or installed and build 18 remains current.
+
+- Swipe study now opens in an immersive full-screen window. Tune and Feedback
+  overlay the sample reader instead of reserving screen space; app tabs are hidden.
+  Changed Kotlin screens compile against cached dependencies. Not yet released
+  or visually verified on the phone.

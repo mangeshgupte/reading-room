@@ -111,12 +111,15 @@ about to run: it builds, and `./gradlew test` passes on it.
 ## Swipe playground
 
 Settings → Playground → Open swipe playground opens a disposable sample article
-using the same detector and page folds as the reader. Tap **Tune** to adjust start
+using the same detector and page folds as the reader. The study opens full screen,
+with app tabs and system bars hidden. A small bottom bar provides Back, Tune, and
+Feedback; the panels overlay the page so its gesture viewport stays the same size.
+Tap **Tune** to adjust start
 distance, vertical dominance, completion distance, flick speed, and speed sampling
 window. Changes persist for the playground only; **Reset defaults** restores the
 reader's settings. The sample accepts swipes only (tap-to-turn is disabled).
 
-After a gesture, select **Next**, **Previous**, or **No turn** to label your intent,
+After a gesture, open **Feedback** and select **Next**, **Previous**, or **No turn** to label your intent,
 and optionally describe what felt wrong. Earlier / Later lets you revisit trials.
 The latest 300 trials persist locally, including unlabelled attempts, raw CSS-pixel
 coordinates and monotonic timestamps, viewport dimensions, parameter snapshots,

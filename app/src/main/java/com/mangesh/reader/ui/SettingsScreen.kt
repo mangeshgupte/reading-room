@@ -38,7 +38,7 @@ fun SettingsScreen(vm: QueueViewModel) {
     var checking by remember { mutableStateOf(false) }
     var playground by remember { mutableStateOf(false) }
     if (playground) {
-        PlaygroundScreen(vm, onBack = { playground = false })
+        PlaygroundDialog(vm, onBack = { playground = false })
         return
     }
     val p = LocalPalette.current
