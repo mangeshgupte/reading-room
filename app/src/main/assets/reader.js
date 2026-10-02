@@ -70,6 +70,15 @@
   function computePages() {
     pages = Math.max(1, Math.ceil((cols.scrollWidth - 1) / W));
   }
+  // a wide formula, table, diagram or code block scrolls inside its box; one that fits is a plain box.
+  // Only the scrolling ones cost the fold anything (see .scrolls in reader.css), so mark them, not all.
+  function markScrollers() {
+    content.querySelectorAll('.tex.display, .tablewrap, .diagram, pre').forEach(function (el) {
+      var wide = el.scrollWidth > el.clientWidth + 1;
+      var tall = el.scrollHeight > el.clientHeight + 1 && !el.classList.contains('tex');   // a formula's overhang is clipped, never scrolled
+      el.classList.toggle('scrolls', wide || tall);
+    });
+  }
   function flowX(el) {  // x of an element's first fragment in the untransformed column flow
     var r = el.getClientRects()[0];
     if (!r) return null;
@@ -103,6 +112,7 @@
     if (fold) { pendingRelayout = true; return; }
     var anchor = anchorBlock();
     measure();
+    markScrollers();
     computePages();
     if (anchor) { page = pageOf(anchor); }
     goTo(page);
@@ -115,7 +125,10 @@
     relayoutTimer = setTimeout(relayout, 60);
   }
 
-  // --- the fold: two hidden copies of the current page, prepared in idle time ---
+  // --- the fold: two hidden copies of the article, made in idle time and kept across page turns ---
+  // A copy is the whole article laid out again; making one costs a full layout, so the pair is reused
+  // (a fold slides them to the page it starts from) and remade only when the article or its look changes.
+  var spareGen = 0;   // bumped by invalidateSpares(): a copy from an older generation is stale
   function makeClone() {
     var c = viewport.cloneNode(true);
     c.removeAttribute('id');
@@ -125,17 +138,28 @@
     cc.style.transition = '';
     cc.style.transform = 'translateX(' + tx + 'px)';
     c.style.visibility = 'hidden';
+    c.gen = spareGen;
     body.appendChild(c);
     return c;
   }
   function invalidateSpares() {
+    spareGen++;
     spares.forEach(function (c) { if (c.parentNode) c.parentNode.removeChild(c); });
     spares = [];
   }
-  function prepareSpares() { invalidateSpares(); spares = [makeClone(), makeClone()]; }
+  function prepareSpares() { while (spares.length < 2) spares.push(makeClone()); }
   function schedulePrepare() {
     var cb = function () { if (!fold) prepareSpares(); };
     if (window.requestIdleCallback) requestIdleCallback(cb, { timeout: 400 }); else setTimeout(cb, 40);
+  }
+  function releaseLayer(c) {   // a fold is over: hide the copy and put it back, unless it went stale meanwhile
+    var shade = c.querySelector('.shade');
+    if (shade) shade.remove();
+    if (c.gen !== spareGen) { if (c.parentNode) c.parentNode.removeChild(c); return; }
+    c.style.visibility = 'hidden';
+    c.style.clipPath = ''; c.style.zIndex = ''; c.style.transform = ''; c.style.transformOrigin = '';
+    c.firstElementChild.style.transform = 'translateX(' + tx + 'px)';
+    spares.push(c);
   }
 
   function beginFold(dir) {
@@ -145,6 +169,7 @@
     var stat = spares[0], panel = spares[1];
     spares = [];
     var from = page;
+    stat.firstElementChild.style.transform = 'translateX(' + (-from * W) + 'px)';
     stat.style.clipPath = dir > 0 ? 'inset(0 0 50% 0)' : 'inset(50% 0 0 0)';   // the half that waits
     stat.style.zIndex = '2';
     panel.style.clipPath = dir > 0 ? 'inset(50% 0 0 0)' : 'inset(0 0 50% 0)';  // the half that folds
@@ -152,6 +177,7 @@
     panel.style.transformOrigin = '50% 50%';
     var inner = panel.firstElementChild;
     inner.style.transformOrigin = '50% 50%';
+    inner.style.transform = 'translateX(' + (-from * W) + 'px)';
     var shade = document.createElement('div');
     shade.className = 'shade';
     panel.appendChild(shade);
@@ -191,8 +217,8 @@
     if (!f) return;
     animateTheta(complete ? 180 : 0, complete ? 240 : 180, function () {
       if (!complete) goTo(f.from, false, true);
-      if (f.stat.parentNode) f.stat.parentNode.removeChild(f.stat);
-      if (f.panel.parentNode) f.panel.parentNode.removeChild(f.panel);
+      releaseLayer(f.stat);
+      releaseLayer(f.panel);
       fold = null;
       if (complete) report(byUser !== false);
       if (pendingRelayout) { pendingRelayout = false; relayout(); } else schedulePrepare();
@@ -301,6 +327,7 @@
     if (!revealed) return;   // still loading: setScroll() and reveal() place the page
     if (paged) {
       measure();
+      markScrollers();
       computePages();
       goTo(anchor ? pageOf(anchor) : page);
       invalidateSpares();
@@ -347,8 +374,8 @@
     if (!fold) return;
     var f = fold;
     fold = null;   // animateTheta() stops when the fold is no longer the current one
-    if (f.stat.parentNode) f.stat.parentNode.removeChild(f.stat);
-    if (f.panel.parentNode) f.panel.parentNode.removeChild(f.panel);
+    releaseLayer(f.stat);
+    releaseLayer(f.panel);
   }
   window.scrubStart = function () {
     if (!paged) return;
@@ -375,7 +402,6 @@
     }
     var target = page, from = scrubFrom;
     scrubFrom = -1;
-    invalidateSpares();   // they are copies of the page the scrub started on
     if (from >= 0 && target !== from) {
       var dir = target > from ? 1 : -1;
       goTo(target - dir, false, true);

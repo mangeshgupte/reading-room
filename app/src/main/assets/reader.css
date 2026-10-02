@@ -104,6 +104,14 @@ body.paged .detail > h2 { margin-top: 0; }
 body.paged figure, body.paged .diagram, body.paged .tablewrap { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; break-inside: avoid; }
 body.paged figure img { max-height: calc(var(--pageH, 80vh) * 0.55); width: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
 body.paged figcaption { padding-left: 0; padding-right: 0; }
-body.paged .tablewrap, body.paged .diagram, body.paged .report pre { max-height: calc(var(--pageH, 80vh) - 1em); overflow: auto; }
-body.paged .tex.display, body.paged .mcomment, body.paged .endrow, body.paged .nextrow, body.paged .callout { break-inside: avoid; }
+body.paged .tablewrap, body.paged .diagram, body.paged .report pre { max-height: calc(var(--pageH, 80vh) - 1em); }
+/* A box scrolls only if its content overflows (reader.js marks those .scrolls after layout), and never in
+   the fold's clones. The WebView composites every scroll container, and without paint containment a
+   composited box inside the column flow gets a layer as wide as the whole flow, which makes every
+   layer-assignment pass of a page turn cost hundreds of milliseconds: a long paper turned in seconds. */
+body.paged .tex.display:not(.scrolls), body.paged .tablewrap:not(.scrolls), body.paged .diagram:not(.scrolls), body.paged .report pre:not(.scrolls) { overflow: clip; }
+body.paged .scrolls { overflow: auto; contain: paint; }
+body.paged .tex.display.scrolls { overflow-y: hidden; }   /* a formula's few pixels of overhang, as in scroll mode */
+body.paged .vp.layer .scrolls { overflow: clip; }
+body.paged .tex.display, body.paged .report pre, body.paged .mcomment, body.paged .endrow, body.paged .nextrow, body.paged .callout { break-inside: avoid; }
 body.paged .report h2, body.paged .report h3, body.paged .report h4, body.paged .report h5 { break-after: avoid; }
