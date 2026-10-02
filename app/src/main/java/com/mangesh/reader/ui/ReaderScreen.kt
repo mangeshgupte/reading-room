@@ -70,7 +70,9 @@ const val NAV_BAR_DP = 48
 /**
  * Chrome auto-hide with hysteresis: hide after HIDE_PX of continuous downward
  * scroll, show after SHOW_PX upward; a direction change resets the count; at
- * most one toggle per TOGGLE_GAP_MS; always shown near the top of the page.
+ * most one toggle per TOGGLE_GAP_MS; shown at once on reaching the top of the
+ * page or the end. An article opens full screen, so scrolling down from the
+ * top does not count as reaching it.
  * The bar overlays the WebView, so toggling never resizes the page.
  */
 private class ChromeGate {
@@ -78,7 +80,7 @@ private class ChromeGate {
     private var lastToggle = 0L
     fun onScroll(dy: Float, y: Float, fraction: Float, visible: Boolean): Boolean {
         val now = SystemClock.uptimeMillis()
-        if (y < NAV_BAR_DP || fraction > 0.985f) { accum = 0f; if (!visible) lastToggle = now; return true }
+        if ((y < NAV_BAR_DP && dy < 0f) || fraction > 0.985f) { accum = 0f; if (!visible) lastToggle = now; return true }
         accum = if ((dy > 0f && accum < 0f) || (dy < 0f && accum > 0f)) dy else accum + dy
         if (now - lastToggle < TOGGLE_GAP_MS) return visible
         return when {

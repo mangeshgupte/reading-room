@@ -40,6 +40,8 @@ The app never writes the log; the module shells out to `reading-list`.
 - **Diagrams.** A ```` ```mermaid ```` fence is marked `<pre class="mermaid">` by the Mac's
   renderer; the app bundles mermaid (`assets/mermaid.min.js`, loaded only on pages that
   have one) and renders it to SVG in the page's theme.
+- **Full screen.** An article opens with the bars (nav row, tabs) hidden. A middle tap brings
+  them back; in scroll mode so does scrolling up, or reaching the top or the end.
 - **Pages.** Paged mode (default) lays the article out as viewport-wide CSS columns, one per
   page, so lines are never cut. A vertical drag folds the near half over the midline,
   Flipboard-style, and completes past the edge; taps low/high turn pages, a middle tap

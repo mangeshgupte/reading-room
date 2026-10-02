@@ -108,6 +108,7 @@ class ScreenshotTest {
 
     @Test fun readerChromeLight() = vm("light").let { vm ->
         vm.open(5)
+        vm.chromeVisible = true   // an article opens full screen; this shot is of the bars
         shot("reader-chrome-light", vm, tabs = false) { ReaderScreen(vm, 5, ReaderHost()) }
     }
 

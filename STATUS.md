@@ -47,3 +47,5 @@ blocker:
   overlay the sample reader instead of reserving screen space; app tabs are hidden.
   Changed Kotlin screens compile against cached dependencies. Not yet released
   or visually verified on the phone.
+
+- `feature/open-fullscreen` (on top of fold-perf): an article now opens full screen — `open()` and the Reading tab hide the bars instead of showing them; a middle tap brings them back, and in scroll mode so does scrolling up or reaching the end. The gate's "always shown near the top" rule now fires only on an upward scroll, otherwise scroll mode would flash the bars on every open. Screenshot test sets the bars on explicitly. 31 JVM tests green. Not yet on the phone (same release as fold-perf).
