@@ -36,6 +36,11 @@ fun SettingsScreen(vm: QueueViewModel) {
     var token by remember { mutableStateOf(vm.settings.token) }
     var updateStatus by remember { mutableStateOf("") }
     var checking by remember { mutableStateOf(false) }
+    var playground by remember { mutableStateOf(false) }
+    if (playground) {
+        PlaygroundScreen(vm, onBack = { playground = false })
+        return
+    }
     val p = LocalPalette.current
 
     fun save() { vm.settings.serverUrl = url; vm.settings.token = token }
@@ -103,6 +108,11 @@ fun SettingsScreen(vm: QueueViewModel) {
                 ReadingControls(vm, withSystemTheme = true)
                 Note("Swipe up or tap low on the page for the next page, swipe down or tap high for the previous; tap the middle " +
                      "for the bars. Pinch in the reader changes the text size too.")
+            }
+
+            Section("Playground") {
+                Note("Tune page swipes, try them on a sample article, and record what you intended.")
+                OutlineButton("Open swipe playground", onClick = { playground = true })
             }
 
             Section("Storage") {

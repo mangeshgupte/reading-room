@@ -204,45 +204,56 @@
 
   if (paged) {
     measure();
-    var drag = null;
+    var drag = null, swipeParams = Swipe.config();
+    window.configureSwipe = function (params) { swipeParams = Swipe.config(params); };
+    function endDrag(e) {
+      if (!drag) return;
+      var d = drag; drag = null;
+      var t = e.changedTouches && e.changedTouches[0];
+      if (t) Swipe.move(d.gesture, t.clientX, t.clientY, performance.now());
+      var r = Swipe.result(d.gesture, H, e.type !== 'touchend');
+      if (r.complete && !d.moved && !d.native) {
+        d.moved = true;
+        d.dead = !beginFold(r.direction);
+      }
+      r.page = d.page; r.pages = pages; r.width = W;
+      r.timestamp = new Date().toISOString();
+      r.outcome = r.complete && d.moved && !d.dead && !d.native ? (r.direction > 0 ? 'next' : 'previous') : 'none';
+      if (d.native) r.reason = 'native scroller';
+      else if (d.dead) r.reason = 'page boundary';
+      if (d.moved || d.gesture.rejected || e.type !== 'touchend') suppressClickUntil = Date.now() + 400;
+      if (d.moved && !d.dead && fold) finishFold(r.outcome !== 'none');
+      if (window.swipePlayground && A && A.onGesture) A.onGesture(JSON.stringify(r));
+    }
     viewport.addEventListener('touchstart', function (e) {
-      if (e.touches.length !== 1 || fold) { drag = null; return; }
+      if (e.touches.length !== 1) { endDrag({ type: 'touchcancel' }); return; }
+      if (fold) return;
       var t = e.touches[0];
-      var inScroller = e.target.closest && e.target.closest('.tablewrap, .diagram, pre');
-      drag = { y: t.clientY, x: t.clientX, t: Date.now(), moved: false, dead: false, native: !!inScroller, ly: t.clientY, lt: Date.now(), vy: 0 };
+      var inScroller = e.target.closest && e.target.closest('.tablewrap, .diagram, pre, a, button');
+      drag = { gesture: Swipe.start(t.clientX, t.clientY, performance.now(), swipeParams),
+        page: page, moved: false, dead: false, native: !!inScroller };
     }, { passive: true });
     viewport.addEventListener('touchmove', function (e) {
-      if (!drag || e.touches.length !== 1 || drag.native) return;
-      var t = e.touches[0], dy = t.clientY - drag.y, dx = t.clientX - drag.x, now = Date.now();
+      if (!drag) return;
+      if (e.touches.length !== 1) { endDrag({ type: 'touchcancel' }); return; }
+      var t = e.touches[0], g = drag.gesture;
+      Swipe.move(g, t.clientX, t.clientY, performance.now());
+      if (drag.native || !g.dir) return;
       if (!drag.moved) {
-        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-        if (Math.abs(dx) > Math.abs(dy)) { drag = null; return; }
         drag.moved = true;
-        drag.dir = dy < 0 ? 1 : -1;
-        if (!beginFold(drag.dir)) drag.dead = true;
+        if (!beginFold(g.dir)) drag.dead = true;
       }
       e.preventDefault();
       if (drag.dead) return;
-      drag.vy = (t.clientY - drag.ly) / Math.max(1, now - drag.lt);
-      drag.ly = t.clientY; drag.lt = now;
-      var progress = (drag.dir > 0 ? -dy : dy) / (H * 0.55);
-      setTheta(Math.max(0, Math.min(180, progress * 180)));
+      var dy = g.points[0][1] - t.clientY;
+      setTheta(Math.max(0, Math.min(180, dy * g.dir / (H * 0.55) * 180)));
     }, { passive: false });
-    function endDrag() {
-      if (!drag) return;
-      var d = drag; drag = null;
-      if (!d.moved) return;
-      suppressClickUntil = Date.now() + 400;
-      if (d.dead || !fold) return;
-      var fast = (d.dir > 0 ? -d.vy : d.vy) > 0.4;
-      finishFold(fold.theta > 70 || fast);
-    }
     viewport.addEventListener('touchend', endDrag, { passive: true });
     viewport.addEventListener('touchcancel', endDrag, { passive: true });
 
     // taps: lower part next, upper part previous, middle toggles the chrome
     viewport.addEventListener('click', function (e) {
-      if (Date.now() < suppressClickUntil) return;
+      if (window.swipePlayground || Date.now() < suppressClickUntil) return;
       if (e.target.closest && e.target.closest('a, button, .mcomment, .endrow, .nextrow, .hl')) return;
       var r = viewport.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
       if (y > 0.62) flip(1);

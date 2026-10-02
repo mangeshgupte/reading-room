@@ -40,6 +40,8 @@ class ReaderWebView(
         fun onTextStep(delta: Int)
         fun onPage(page: Int, pages: Int, fraction: Float, byUser: Boolean)
         fun onTap()
+        /** Optional diagnostic trace, enabled only in the playground. */
+        fun onGesture(json: String) {}
         /** Where the sections start, for the progress line's ticks: the page's JSON, see Scrub.parse. */
         fun onSections(json: String)
     }
@@ -87,6 +89,7 @@ class ReaderWebView(
             @JavascriptInterface fun onTextStep(delta: Int) { main.post { bridge?.onTextStep(delta) } }
             @JavascriptInterface fun onPage(page: Int, pages: Int, fraction: Double, byUser: Boolean) { main.post { bridge?.onPage(page, pages, fraction.toFloat(), byUser) } }
             @JavascriptInterface fun onTap() { main.post { bridge?.onTap() } }
+            @JavascriptInterface fun onGesture(json: String) { main.post { bridge?.onGesture(json) } }
             @JavascriptInterface fun onSections(json: String) { main.post { bridge?.onSections(json) } }
         }, "Android")
         view.webViewClient = object : WebViewClient() {
@@ -189,7 +192,8 @@ class ReaderWebView(
             val dark = palette.dark
             val vars = (palette.vars() + TypeScale.vars(textStep, lineSpacing)).entries.joinToString(";") { (k, v) -> "$k:$v" }
             val css = context.assets.open("reader.css").bufferedReader().readText()
-            val js = context.assets.open("reader.js").bufferedReader().readText()
+            val js = context.assets.open("swipe.js").bufferedReader().readText() + "\n" +
+                context.assets.open("reader.js").bufferedReader().readText()
             val end = when (entry.state) {
                 "queued" -> """<div class="endrow"><button class="primary" onclick="Android.done()">Mark as read</button>""" +
                     """<button onclick="Android.drop()">Drop</button></div>""" +

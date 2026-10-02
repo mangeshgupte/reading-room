@@ -28,3 +28,13 @@ blocker:
 
 ## 2026-09-19
 - Upstream set: `origin` = `git@github.com:mangeshgupte/reading-room.git` (public, MIT). GitHub's initial commit held only `LICENSE`, so the local history was replayed on top of it rather than force-pushed; `build-18` moved to the replayed import commit. Tracked files scanned for credentials before the first push: none (the token is typed in at runtime, signing passwords come from the ignored `keys/`).
+
+## 2026-10-02
+- Added Settings → Playground: sample reader, five tunable swipe parameters,
+  per-gesture intent labels and notes, local retention of 300 traces, and JSON export.
+  The reader and playground share swipe.js. Cancelled touches now roll back; flick
+  speed uses a recent window including release, preventing stale velocity after a pause.
+- Added dependency-free trace replay/ranking script and ten passing detector and reader touch-handler tests.
+  Changed Kotlin screens compile directly against cached dependencies.
+  Android Gradle verification blocked by sandbox socket restrictions; escalation
+  disabled. Not released or checked on a phone; feature remains on its branch.

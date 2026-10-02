@@ -104,3 +104,27 @@ about to run: it builds, and `./gradlew test` passes on it.
    Bonjour (`_vibes._tcp`, advertised by the server), so neither the phone's `.local`
    resolution nor the Mac's DHCP address matters. Typing an IP instead skips discovery.
 4. Updates: Settings → Check for updates (pull), or `scripts/release.sh` over adb (push).
+
+## Swipe playground
+
+Settings → Playground → Open swipe playground opens a disposable sample article
+using the same detector and page folds as the reader. Tap **Tune** to adjust start
+distance, vertical dominance, completion distance, flick speed, and speed sampling
+window. Changes persist for the playground only; **Reset defaults** restores the
+reader's settings. The sample accepts swipes only (tap-to-turn is disabled).
+
+After a gesture, select **Next**, **Previous**, or **No turn** to label your intent,
+and optionally describe what felt wrong. Earlier / Later lets you revisit trials.
+The latest 300 trials persist locally, including unlabelled attempts, raw CSS-pixel
+coordinates and monotonic timestamps, viewport dimensions, parameter snapshots,
+outcomes, and cancellation / boundary reasons. **Export** saves a JSON file through
+Android's document picker, with app and device versions. Send that file in the chat
+for analysis; it is not automatically uploaded or included in queue sync. Export
+before exceeding 300 trials if you want to keep a whole session.
+
+Try both successful and failed swipes, plus movements that should do nothing.
+Replay labelled exports with `node scripts/analyze-swipes.cjs feedback.json` (multiple
+files accepted). This ranks candidate settings, weighting accidental turns twice
+as heavily as misses. Validate a candidate on new gestures before promoting it to
+reader defaults; replay cannot predict how changed fold timing will feel.
+Detector regressions: `node --test tests/swipe.test.cjs`.
