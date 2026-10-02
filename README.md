@@ -43,8 +43,11 @@ The app never writes the log; the module shells out to `reading-list`.
 - **Pages.** Paged mode (default) lays the article out as viewport-wide CSS columns, one per
   page, so lines are never cut. A vertical drag folds the near half over the midline,
   Flipboard-style, and completes past the edge; taps low/high turn pages, a middle tap
-  toggles the bars. The fold uses two hidden clones of the current page prepared in idle
-  time. Scroll mode is a toggle in Settings and the reader menu.
+  toggles the bars. The fold uses two hidden copies of the article, made in idle time and
+  kept across turns. A wide formula, table, diagram or code block scrolls inside its box;
+  one that fits is a plain box, and the copies never scroll — a scroll container inside the
+  column flow is what the WebView composites, and each one taxes every page turn (see the
+  note in `reader.css`). Scroll mode is a toggle in Settings and the reader menu.
 - **Quick scroll.** The footer's progress line is the page edge you thumb. Drag along it to riffle:
   pages swap at once with no fold, a tick marks where each section starts and the drag snaps softly
   to it, and a label over the finger names the section and the page ("Scorecard · 17 / 22"). Letting
